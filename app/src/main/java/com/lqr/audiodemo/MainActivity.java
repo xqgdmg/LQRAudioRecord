@@ -108,6 +108,7 @@ public class MainActivity extends AppCompatActivity {
             private ImageView mStateIV;
             private PopupWindow mRecordWindow;
 
+             // 录制过程中的各种提示
             @Override
             public void initTipView() {
                 View view = View.inflate(MainActivity.this, R.layout.popup_audio_wi_vo, null);
@@ -181,6 +182,7 @@ public class MainActivity extends AppCompatActivity {
                 //开始录制
             }
 
+             // 录制完成
             @Override
             public void onFinish(Uri audioPath, int duration) {
                 //发送文件
@@ -191,6 +193,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
+             // 音量变化
             @Override
             public void onAudioDBChanged(int db) {
                 switch (db / 5) {
@@ -260,10 +263,12 @@ public class MainActivity extends AppCompatActivity {
 
                 }
             };
+
+             // 聊天列表，播放语音
             mAdapter.setOnItemClickListener(new OnItemClickListener() {
                 @Override
                 public void onItemClick(LQRViewHolder helper, ViewGroup parent, View itemView, int position) {
-                    AudioPlayManager.getInstance().stopPlay();
+                    AudioPlayManager.getInstance().stopPlay(); // 先停止播放
                     File item = mData.get(position);
                     final ImageView ivAudio = helper.getView(R.id.ivAudio);
                     Uri audioUri = Uri.fromFile(item);

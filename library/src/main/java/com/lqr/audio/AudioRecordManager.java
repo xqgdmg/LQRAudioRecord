@@ -65,7 +65,7 @@ public class AudioRecordManager implements Handler.Callback {
                 telephonyManager.listen(new PhoneStateListener() {
                     public void onCallStateChanged(int state, String incomingNumber) {
                         switch (state) {
-                            case 1: // 响铃
+                            case 1: // 来电话响铃
                                 AudioRecordManager.this.sendEmptyMessage(6);
                             case 0:
                             case 2:

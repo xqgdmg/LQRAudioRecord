@@ -20,7 +20,7 @@ public class AudioPlayManager implements SensorEventListener {
     private MediaPlayer _mediaPlayer;
     private IAudioPlayListener _playListener;
     private Uri _playingUri;
-    private Sensor _sensor;
+    private Sensor _sensor; // 接近传感器
     private SensorManager _sensorManager;
     private AudioManager _audioManager;
     private PowerManager _powerManager;
@@ -35,22 +35,37 @@ public class AudioPlayManager implements SensorEventListener {
         return AudioPlayManager.SingletonHolder.sInstance;
     }
 
+    /*
+     * 接近传感器的监听
+     * 切换扬声器和听筒
+     * @Call 当有新的传感器事件时调用
+     */
     @TargetApi(11)
     public void onSensorChanged(SensorEvent event) {
         float range = event.values[0];
         if (this._sensor != null && this._mediaPlayer != null) {
             if (this._mediaPlayer.isPlaying()) {
+                /* modes for setPhoneState, must match AudioSystem.h audio_mode */
+//                public static final int MODE_INVALID            = -2;
+//                public static final int MODE_CURRENT            = -1;
+//                public static final int MODE_NORMAL             = 0;
+//                public static final int MODE_RINGTONE           = 1;
+//                public static final int MODE_IN_CALL            = 2;
+//                public static final int MODE_IN_COMMUNICATION   = 3;
+//                public static final int NUM_MODES               = 4;
+
                 if ((double) range > 0.0D) {
                     if (this._audioManager.getMode() == 0) {
                         return;
                     }
 
                     this._audioManager.setMode(0);
-                    this._audioManager.setSpeakerphoneOn(true);
+                    this._audioManager.setSpeakerphoneOn(true); // 开启扬声器
                     final int positions = this._mediaPlayer.getCurrentPosition();
 
                     try {
                         this._mediaPlayer.reset();
+                         // STREAM_MUSIC = 3
                         this._mediaPlayer.setAudioStreamType(3);
                         this._mediaPlayer.setVolume(1.0F, 1.0F);
                         this._mediaPlayer.setDataSource(this.context, this._playingUri);
@@ -86,7 +101,7 @@ public class AudioPlayManager implements SensorEventListener {
                         this._audioManager.setMode(2);
                     }
 
-                    this._audioManager.setSpeakerphoneOn(false);
+                    this._audioManager.setSpeakerphoneOn(false); // 关闭扬声器
                     this.replay();
                 }
             } else if ((double) range > 0.0D) {
@@ -95,11 +110,18 @@ public class AudioPlayManager implements SensorEventListener {
                 }
 
                 this._audioManager.setMode(0);
-                this._audioManager.setSpeakerphoneOn(true);
+                this._audioManager.setSpeakerphoneOn(true); // 打开扬声器
                 this.setScreenOn();
             }
 
         }
+    }
+
+    /*
+     * 接近传感器监听
+     * @Call 当已注册传感器的精度发生变化时调用
+     */
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
     }
 
     @TargetApi(21)
@@ -127,13 +149,15 @@ public class AudioPlayManager implements SensorEventListener {
 
     }
 
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {
-    }
-
+    /*
+     * 重播
+     */
     private void replay() {
         try {
-            this._mediaPlayer.reset();
-            this._mediaPlayer.setAudioStreamType(0);
+            this._mediaPlayer.reset(); // 重置
+            /* The audio stream for phone calls */
+//            public static final int STREAM_VOICE_CALL = 0;
+            this._mediaPlayer.setAudioStreamType(0); // 为何变成了 STREAM_VOICE_CALL
             this._mediaPlayer.setVolume(1.0F, 1.0F);
             this._mediaPlayer.setDataSource(this.context, this._playingUri);
             this._mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
@@ -148,6 +172,9 @@ public class AudioPlayManager implements SensorEventListener {
 
     }
 
+    /*
+     * 开始播放
+     */
     public void startPlay(Context context, Uri audioUri, IAudioPlayListener playListener) {
         if (context != null && audioUri != null) {
             this.context = context;
@@ -155,7 +182,8 @@ public class AudioPlayManager implements SensorEventListener {
                 this._playListener.onStop(this._playingUri);
             }
 
-            this.resetMediaPlayer();
+            this.resetMediaPlayer(); // 初始化播放器
+             // 音源焦点监听
             this.afChangeListener = new AudioManager.OnAudioFocusChangeListener() {
                 public void onAudioFocusChange(int focusChange) {
                     Log.d(TAG, "OnAudioFocusChangeListener " + focusChange);
@@ -169,10 +197,15 @@ public class AudioPlayManager implements SensorEventListener {
             };
 
             try {
+                 // 电源管理
                 this._powerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+                 // 声音管理
                 this._audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
                 if (!this._audioManager.isWiredHeadsetOn()) {
+                     // 传感器管理
                     this._sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
+                     //type: A constant describing a proximity sensor type. This is a wake up sensor.
+                     //type: 描述接近传感器类型的常量。这是一个唤醒传感器。（Sensor类中的常量）
                     this._sensor = this._sensorManager.getDefaultSensor(8);
                     this._sensorManager.registerListener(this, this._sensor, 3);
                 }
@@ -180,6 +213,7 @@ public class AudioPlayManager implements SensorEventListener {
                 this.muteAudioFocus(this._audioManager, true);
                 this._playListener = playListener;
                 this._playingUri = audioUri;
+                 // 用的是 MediaPlayer
                 this._mediaPlayer = new MediaPlayer();
                 this._mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                     public void onCompletion(MediaPlayer mp) {
@@ -255,6 +289,9 @@ public class AudioPlayManager implements SensorEventListener {
         this._playingUri = null;
     }
 
+    /*
+     * 初始化播放器 MediaPlayer
+     */
     private void resetMediaPlayer() {
         if (this._mediaPlayer != null) {
             try {
@@ -278,6 +315,7 @@ public class AudioPlayManager implements SensorEventListener {
         if (Build.VERSION.SDK_INT < 8) {
             Log.d(TAG, "muteAudioFocus Android 2.1 and below can not stop music");
         } else {
+             // 音源焦点处理
             if (bMute) {
                 audioManager.requestAudioFocus(this.afChangeListener, 3, 2);
             } else {
