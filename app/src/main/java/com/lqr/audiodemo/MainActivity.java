@@ -222,9 +222,13 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /*
+     * 判断是否是取消的手势
+     */
     private boolean isCancelled(View view, MotionEvent event) {
         int[] location = new int[2];
         view.getLocationOnScreen(location);
+         // 滑动距离 view的坐标
         if (event.getRawX() < location[0] || event.getRawX() > location[0] + view.getWidth() || event.getRawY() < location[1] - 40) {
             return true;
         }

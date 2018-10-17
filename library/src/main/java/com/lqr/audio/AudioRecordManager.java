@@ -61,11 +61,11 @@ public class AudioRecordManager implements Handler.Callback {
         this.timerState = new AudioRecordManager.TimerState();
         if (Build.VERSION.SDK_INT < 21) {
             try {
-                TelephonyManager e = (TelephonyManager) this.mContext.getSystemService(Context.TELEPHONY_SERVICE);
-                e.listen(new PhoneStateListener() {
+                TelephonyManager telephonyManager = (TelephonyManager) this.mContext.getSystemService(Context.TELEPHONY_SERVICE);
+                telephonyManager.listen(new PhoneStateListener() {
                     public void onCallStateChanged(int state, String incomingNumber) {
                         switch (state) {
-                            case 1:
+                            case 1: // 响铃
                                 AudioRecordManager.this.sendEmptyMessage(6);
                             case 0:
                             case 2:
@@ -167,6 +167,7 @@ public class AudioRecordManager implements Handler.Callback {
             public void onAudioFocusChange(int focusChange) {
                 Log.d(TAG, "OnAudioFocusChangeListener " + focusChange);
                 if (focusChange == -1) {
+                     // 放弃音频焦点。让前一个焦点所有者（如果有）获得焦点。
                     AudioRecordManager.this.mAudioManager.abandonAudioFocus(AudioRecordManager.this.mAfChangeListener);
                     AudioRecordManager.this.mAfChangeListener = null;
                     AudioRecordManager.this.sendEmptyMessage(6);
